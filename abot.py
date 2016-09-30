@@ -23,6 +23,7 @@ args = parser.parse_args()
 abot = pymumble.Mumble(args.host, args.user, password=args.password)
 abot.set_application_string("abot (%s)" % __version__)
 abot.start()
+abot.is_ready()
 
 a_in = alsaaudio.PCM(type=alsaaudio.PCM_CAPTURE)
 a_in.setchannels(1)
