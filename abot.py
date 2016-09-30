@@ -20,7 +20,10 @@ parser.add_argument("-s", "--setperiodsize", dest="periodsize", type=int, defaul
 
 args = parser.parse_args()
 
-abot = pymumble.Mumble(args.host, args.user, password=args.password)
+if args.password:
+    abot = pymumble.Mumble(args.host, args.user, password=args.password)
+else:
+    abot = pymumble.Mumble(args.host, args.user)
 abot.set_application_string("abot (%s)" % __version__)
 abot.start()
 abot.is_ready()
