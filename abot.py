@@ -3,20 +3,23 @@
 from thrd_party import pymumble
 import alsaaudio
 import argparse
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 parser = argparse.ArgumentParser(description='Alsa input to mumble')
 parser.add_argument("-H", "--host", dest="host", type=str, required=True,
-                    help="A Hostame of a mumble server")
+                    help="A hostame of a mumble server")
 
 parser.add_argument("-u", "--user", dest="user", type=str, required=True,
                     help="Username you wish")
 
 parser.add_argument("-p", "--password", dest="password", type=str, default=None,
-                    help="password if server requires one")
+                    help="Password if server requires one")
 
 parser.add_argument("-s", "--setperiodsize", dest="periodsize", type=int, default=256,
-                    help="lesser value lesser delay. WARNING: lesser values could be unstable")
+                    help="Lower values mean less delay. WARNING: Lower values could be unstable")
+
+parser.add_argument("-b", "--bandwidth", dest="bandwidth", type=float, default=96000,
+                    help="Bandwith of the bot (in bytes/s). Default value=96000")
 
 args = parser.parse_args()
 
@@ -25,6 +28,8 @@ if args.password:
 else:
     abot = pymumble.Mumble(args.host, args.user)
 abot.set_application_string("abot (%s)" % __version__)
+abot.set_codec_profile("audio")
+abot.set_bandwidth(args.bandwidth)
 abot.start()
 abot.is_ready()
 
