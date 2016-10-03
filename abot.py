@@ -9,8 +9,8 @@ import argparse
 import sys
 
 from thrd_party import pymumble
-import alsaaudio
-__version__ = "0.0.2"
+import pyaudio
+__version__ = "0.0.3"
 
 
 def main():
@@ -43,18 +43,21 @@ def main():
     abot.is_ready()
     abot.set_bandwidth(args.bandwidth)
 
-    a_in = alsaaudio.PCM(type=alsaaudio.PCM_CAPTURE)
-    a_in.setchannels(1)
-    a_in.setperiodsize(args.periodsize)
-    a_in.setrate(pymumble.constants.PYMUMBLE_SAMPLERATE)
+    p_in = pyaudio.PyAudio()
+
+    stream = p_in.open(input=True,
+                       channels=1,
+                       format=pyaudio.paInt16,
+                       rate=pymumble.constants.PYMUMBLE_SAMPLERATE,
+                       frames_per_buffer=args.periodsize)
 
     while True:
-        length, data = a_in.read()
-        del length
+        data = stream.read(args.periodsize)
         if not data:
             print("no data, exiting loop")
             break
         abot.sound_output.add_sound(data)
+    stream.close()
     return 0
 
 
