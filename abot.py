@@ -10,7 +10,7 @@ import sys
 
 from thrd_party import pymumble
 import pyaudio
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
     parser.add_argument("-u", "--user", dest="user", type=str, required=True,
                         help="Username you wish, Default=abot")
 
-    parser.add_argument("-p", "--password", dest="password", type=str, default=None,
+    parser.add_argument("-p", "--password", dest="password", type=str, default="",
                         help="Password if server requires one")
 
     parser.add_argument("-s", "--setperiodsize", dest="periodsize", type=int, default=256,
@@ -31,12 +31,13 @@ def main():
     parser.add_argument("-b", "--bandwidth", dest="bandwidth", type=int, default=96000,
                         help="Bandwith of the bot (in bytes/s). Default=96000")
 
+    parser.add_argument("-c", "--certificate", dest="certfile", type=str, default=None,
+                        help="Path to an optional openssl certificate file")
+
     args = parser.parse_args()
 
-    if args.password:
-        abot = pymumble.Mumble(args.host, args.user, password=args.password)
-    else:
-        abot = pymumble.Mumble(args.host, args.user)
+    abot = pymumble.Mumble(args.host, args.user, certfile=args.certfile, password=args.password)
+    
     abot.set_application_string("abot (%s)" % __version__)
     abot.set_codec_profile("audio")
     abot.start()
