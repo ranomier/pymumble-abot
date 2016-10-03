@@ -1,4 +1,4 @@
-# pymumble-about
+# pymumble-abot
 This is a bot that streams your ALSA output into Mumble. It uses the [pymumble library](https://github.com/azlux/pymumble).
 
 ## Features
@@ -7,16 +7,22 @@ This is a bot that streams your ALSA output into Mumble. It uses the [pymumble l
 ## Todos
 * Add ability to use certificates
 
+## Dependencies
+### Python libraries
+* opuslib (Opus codec)
+* protobuf-py3 (Google Protocol Buffers)
+* pyaudio (PortAudio)
+
 ## Installation
-### Install with virtualenv on Linux
+### Method 1: Install on Linux with virtualenv
 Login as a user; do not execute the following commands as root :)
 
 	virtualenv ~/python-for-pymumble-abot
 	source ~/python-for-pymumble-abot/bin/activate
- 
-	pip install opuslib google protobuf-py3 pyalsaaudio
+
+	pip install opuslib google protobuf-py3 pyaudio
 	cd
-	
+
 	git clone git@github.com:ranomier/pymumble-abot.git
 	cd pymumble-abot
 	git submodule init
@@ -25,6 +31,11 @@ Login as a user; do not execute the following commands as root :)
 Now you can run your own bot :)
 
 ## Usage
+First you need to activate your Python environment:
+	source ~/python-for-pymumble-abot/bin/activate
+
+Then you can run your bot:
+	cd ~/pymumble-abot
 	./abot.py --host hostname_of_server -u "choose_username" -p "your_password"
 
 Be aware that most Mumble servers do not allow spaces or other special characters for user names.
