@@ -69,7 +69,6 @@ class Audio(object):
                 print("no data, exiting loop")
                 break
             self.mumble.sound_output.add_sound(data)
-            print(data)
         stream.close()
         return True
 
@@ -104,7 +103,7 @@ def main():
     abot.is_ready()
     abot.set_bandwidth(args.bandwidth)
 
-    Audio(abot, {"output": (args.bandwidth, ), "input": (args.bandwidth, )})
+    Audio(abot, {"output": (args.periodsize, ), "input": (args.periodsize, )})
     while True:
         sleep(100)
 
