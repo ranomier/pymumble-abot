@@ -90,3 +90,7 @@ ENV/
 
 # Vim swap files
 .*.swp
+.*.swo
+
+# should not included 
+certificates/*
