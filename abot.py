@@ -7,7 +7,7 @@ DESC:   a simple bot that receives sound from a sound device (for me jack audio 
 
 import argparse
 import sys
-from multiprocessing import Process
+from threading import Thread
 from time import sleep
 
 from thrd_party import pymumble
@@ -32,7 +32,7 @@ class MuRunner(object):
         """ TODO """
         for name, cdict in self.run_dict.items():
             print("generating process for:", name)
-            self.run_dict[name]["process"] = Process(target=cdict["func"], args=cdict["args"])
+            self.run_dict[name]["process"] = Thread(target=cdict["func"], args=cdict["args"])
             print("starting process for:", name)
             self.run_dict[name]["process"].start()
 
@@ -41,21 +41,26 @@ class MuRunner(object):
         print(self.run_dict)
 
 
-
-
-class Audio(object):
-    """ TODO """
+class SiRunner(object):
     def __init__(self, mumble_object, args_dict):
         self.mumble = mumble_object
-        self.run_list = {"input": {"func": self.__input_loop, "process": None},
-                         "output": {"func": self.__output_loop, "process": None}}
-        MuRunner(self.run_list, args_dict)
+        self.run_dict = self._config()
+        MuRunner(self.run_dict, args_dict)
 
-    def __output_loop(self, periodsize):
+    def _config(self):
+        raise NotImplementedError("please inherit and implement")
+
+class Audio(SiRunner):
+    """ TODO """
+    def _config(self): 
+        return {"input": {"func": self.input_loop, "process": None},
+                "output": {"func": self.output_loop, "process": None}}
+
+    def output_loop(self, periodsize):
         """ TODO """
         return None
 
-    def __input_loop(self, periodsize):
+    def input_loop(self, periodsize):
         """ TODO """
         p_in = pyaudio.PyAudio()
         stream = p_in.open(input=True,
@@ -71,6 +76,7 @@ class Audio(object):
             self.mumble.sound_output.add_sound(data)
         stream.close()
         return True
+
 
 def main():
     """swallows parameter. TODO: move functionality away"""
