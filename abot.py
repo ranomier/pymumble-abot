@@ -99,6 +99,9 @@ def main():
     parser.add_argument("-c", "--certificate", dest="certfile", type=str, default=None,
                         help="Path to an optional openssl certificate file")
 
+    parser.add_argument("-C", "--channel", dest="channel", type=str, default=None,
+                        help="channel name as string")
+
     args = parser.parse_args()
 
     abot = pymumble.Mumble(args.host, args.user, certfile=args.certfile, password=args.password)
@@ -108,6 +111,12 @@ def main():
     abot.start()
     abot.is_ready()
     abot.set_bandwidth(args.bandwidth)
+    try:
+        abot.channels.find_by_name(args.channel).move_in()
+    except pymumble.channels.UnknownChannelError as err:
+        print("Tried to connect to channel:", args.channel, ". Got this Error:")
+        print(str(err))
+
 
     Audio(abot, {"output": (args.periodsize, ), "input": (args.periodsize, )})
     while True:
