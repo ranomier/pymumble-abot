@@ -9,58 +9,67 @@ import argparse
 import sys
 from threading import Thread
 from time import sleep
+from collections import UserDict
+import warnings
 
 from thrd_party import pymumble
 import pyaudio
 __version__ = "0.0.4"
 
-class MuRunner(object):
+class Runner(UserDict):
     """ TODO """
-    def __init__(self, run_dict, args_dict):
-        self.run_dict = run_dict
-        self.args_dict = args_dict
-        self.__join_dicts()
+    def __init__(self, run_dict, args_dict=None):
+        super().__init__(run_dict)
+        self.change_args(args_dict)
         self.run()
 
-    def __join_dicts(self):
-        for name in self.run_dict.keys():
-            if name in self.args_dict:
-                self.run_dict[name]["args"] = self.args_dict[name]
+    def change_args(self, args_dict):
+        """ TODO """
+        for name in self.keys():
+            if name in args_dict:
+                self[name]["args"] = args_dict[name]
+            else:
+                self[name] = ()
 
 
     def run(self):
         """ TODO """
-        for name, cdict in self.run_dict.items():
+        for name, cdict in self.items():
             print("generating process for:", name)
-            self.run_dict[name]["process"] = Thread(target=cdict["func"], args=cdict["args"])
+            self[name]["process"] = Thread(target=cdict["func"], args=cdict["args"])
             print("starting process for:", name)
-            self.run_dict[name]["process"].start()
-
-    def check(self):
-        """ TODO """
-        print(self.run_dict)
+            self[name]["process"].start()
 
 
-class SiRunner(object):
+class MumbleRunner(Runner):
     def __init__(self, mumble_object, args_dict):
         self.mumble = mumble_object
-        self.run_dict = self._config()
-        MuRunner(self.run_dict, args_dict)
+        super().__init__(self._config(), args_dict)
 
     def _config(self):
         raise NotImplementedError("please inherit and implement")
 
-class Audio(SiRunner):
+
+
+class Audio(MumbleRunner):
     """ TODO """
     def _config(self): 
-        return {"input": {"func": self.input_loop, "process": None},
-                "output": {"func": self.output_loop, "process": None}}
+        return {"input": {"func": self.__input_loop, "process": None},
+                "output": {"func": self.__output_loop, "process": None}}
 
-    def output_loop(self, periodsize):
+    def calculate_volume(self, thread_name):
+        try:
+            db = self[thread_name]["db"]
+            self["vol_vector"] = 10 ** (db/20)
+        except KeyError:
+            self["vol_vector"] = 1
+
+
+    def __output_loop(self, periodsize):
         """ TODO """
         return None
 
-    def input_loop(self, periodsize):
+    def __input_loop(self, periodsize):
         """ TODO """
         p_in = pyaudio.PyAudio()
         stream = p_in.open(input=True,
@@ -76,6 +85,10 @@ class Audio(SiRunner):
             self.mumble.sound_output.add_sound(data)
         stream.close()
         return True
+
+    def input_vol(self, dbint):
+        self.run_dict = None
+
 
 
 def main():
@@ -118,8 +131,9 @@ def main():
         print(str(err))
 
 
-    Audio(abot, {"output": (args.periodsize, ), "input": (args.periodsize, )})
+    audio = Audio(abot, {"output": (args.periodsize, ), "input": (args.periodsize, )})
     while True:
+        print(audio)
         sleep(100)
 
     #stream = p_in.open(input=True,
