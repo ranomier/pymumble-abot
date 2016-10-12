@@ -10,6 +10,7 @@ import sys
 from threading import Thread
 from time import sleep
 from collections import UserDict
+from pprint import pprint
 import warnings
 
 from thrd_party import pymumble
@@ -27,7 +28,8 @@ class Runner(UserDict):
         """ TODO """
         for name in self.keys():
             if name in args_dict:
-                self[name]["args"] = args_dict[name]
+                self[name]["args"] = args_dict[name]["args"]
+                self[name]["kwargs"] = args_dict[name]["kwargs"]
             else:
                 self[name] = ()
 
@@ -36,7 +38,9 @@ class Runner(UserDict):
         """ TODO """
         for name, cdict in self.items():
             print("generating process for:", name)
-            self[name]["process"] = Thread(target=cdict["func"], args=cdict["args"])
+            self[name]["process"] = Thread(target=cdict["func"],
+                                           args=cdict["args"],
+                                           kwargs=cdict["kwargs"])
             print("starting process for:", name)
             self[name]["process"].start()
 
@@ -131,9 +135,14 @@ def main():
         print(str(err))
 
 
-    audio = Audio(abot, {"output": (args.periodsize, ), "input": (args.periodsize, )})
+    audio = Audio(abot, {"output": {"args": (args.periodsize, ),
+                                    "kwargs": None},
+                         "input": {"args": (args.periodsize, ),
+                                   "kwargs": None}
+                        }
+                 )
     while True:
-        print(audio)
+        pprint(audio)
         sleep(100)
 
     #stream = p_in.open(input=True,
