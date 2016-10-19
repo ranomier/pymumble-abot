@@ -9,7 +9,7 @@ import argparse
 import sys
 from threading import Thread
 from time import sleep
-from collections import UserDict
+import collections
 from pprint import pprint
 import warnings
 
@@ -17,9 +17,10 @@ from thrd_party import pymumble
 import pyaudio
 __version__ = "0.0.4"
 
-class Runner(UserDict):
+class Runner(collections.UserDict):
     """ TODO """
     def __init__(self, run_dict, args_dict=None):
+        self.is_ready = False
         super().__init__(run_dict)
         self.change_args(args_dict)
         self.run()
@@ -31,18 +32,38 @@ class Runner(UserDict):
                 self[name]["args"] = args_dict[name]["args"]
                 self[name]["kwargs"] = args_dict[name]["kwargs"]
             else:
-                self[name] = ()
+                self[name]["args"] = None
+                self[name]["kwargs"] = None
 
 
     def run(self):
         """ TODO """
         for name, cdict in self.items():
-            print("generating process for:", name)
-            self[name]["process"] = Thread(target=cdict["func"],
+            print("[run] generating process for:", name)
+            self[name]["process"] = Thread(name=name,
+                                           target=cdict["func"],
                                            args=cdict["args"],
                                            kwargs=cdict["kwargs"])
-            print("starting process for:", name)
+            print("[run] starting process for:", name)
             self[name]["process"].start()
+            print("[run] ", name, "started")
+        print("[run] all done")
+        self.is_ready = True
+
+    def status(self):
+        """ TODO """
+        if self.is_ready:
+            result = []
+            for meta in self.keys():
+                ntuple = collections.namedtuple("thread_info", ("name", "alive"))
+                result.append(ntuple(meta["process"].name, meta["process"].is_alive()))
+            return result
+        else:
+            return list()
+
+    def stop(name=""):
+        raise NotImplementedError("Sorry")
+
 
 
 class MumbleRunner(Runner):
@@ -56,8 +77,8 @@ class MumbleRunner(Runner):
 
 
 class Audio(MumbleRunner):
-    """ TODO """
-    def _config(self): 
+    """Configures a MumbleRunner. Input only. Via pyaudio"""
+    def _config(self):
         return {"input": {"func": self.__input_loop, "process": None},
                 "output": {"func": self.__output_loop, "process": None}}
 
@@ -83,9 +104,6 @@ class Audio(MumbleRunner):
                            frames_per_buffer=periodsize)
         while True:
             data = stream.read(periodsize)
-            if not data:
-                print("no data, exiting loop")
-                break
             self.mumble.sound_output.add_sound(data)
         stream.close()
         return True
@@ -94,8 +112,29 @@ class Audio(MumbleRunner):
         self.run_dict = None
 
 
+def prepare_mumble(host, user, password="", certfile=None,
+                   codec_profile="audio", bandwidth=96000, channel=None):
+    """Will configure the pymumble object and return it"""
 
-def main():
+    abot = pymumble.Mumble(host, user, certfile=certfile, password=password)
+
+    abot.set_application_string("abot (%s)" % __version__)
+    abot.set_codec_profile(codec_profile)
+    abot.start()
+    abot.is_ready()
+    abot.set_bandwidth(bandwidth)
+    if channel:
+        try:
+            abot.channels.find_by_name(channel).move_in()
+        except pymumble.channels.UnknownChannelError:
+            print("Tried to connect to channel:", "'" + channel + "'. ", "Got this Error:")
+            print("Available Channels:")
+            print(abot.channels)
+            sys.exit(1)
+    return abot
+
+
+def main(preserve_thread=True):
     """swallows parameter. TODO: move functionality away"""
     parser = argparse.ArgumentParser(description='Alsa input to mumble')
     parser.add_argument("-H", "--host", dest="host", type=str, required=True,
@@ -121,19 +160,9 @@ def main():
 
     args = parser.parse_args()
 
-    abot = pymumble.Mumble(args.host, args.user, certfile=args.certfile, password=args.password)
 
-    abot.set_application_string("abot (%s)" % __version__)
-    abot.set_codec_profile("audio")
-    abot.start()
-    abot.is_ready()
-    abot.set_bandwidth(args.bandwidth)
-    try:
-        abot.channels.find_by_name(args.channel).move_in()
-    except pymumble.channels.UnknownChannelError as err:
-        print("Tried to connect to channel:", args.channel, ". Got this Error:")
-        print(str(err))
-
+    abot = prepare_mumble(args.host, args.user, args.password, args.certfile,
+                          "audio", args.bandwidth, args.channel)
 
     audio = Audio(abot, {"output": {"args": (args.periodsize, ),
                                     "kwargs": None},
@@ -141,18 +170,10 @@ def main():
                                    "kwargs": None}
                         }
                  )
-    while True:
-        pprint(audio)
-        sleep(100)
-
-    #stream = p_in.open(input=True,
-    #                   channels=1,
-    #                   format=pyaudio.paInt16,
-    #                   rate=pymumble.constants.PYMUMBLE_SAMPLERATE,
-    #                   frames_per_buffer=args.periodsize)
-
-
-
+    if preserve_thread:
+        while True:
+            print(audio.status())
+            sleep(10)
 
 if __name__ == "__main__":
     sys.exit(main())
