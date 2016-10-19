@@ -10,8 +10,8 @@ import sys
 from threading import Thread
 from time import sleep
 import collections
-from pprint import pprint
-import warnings
+#from pprint import pprint
+#import warnings
 
 from thrd_party import pymumble
 import pyaudio
@@ -65,7 +65,6 @@ class Runner(collections.UserDict):
         raise NotImplementedError("Sorry")
 
 
-
 class MumbleRunner(Runner):
     def __init__(self, mumble_object, args_dict):
         self.mumble = mumble_object
@@ -74,14 +73,18 @@ class MumbleRunner(Runner):
     def _config(self):
         raise NotImplementedError("please inherit and implement")
 
-
-
-class Audio(MumbleRunner):
+class BaseAudio(MumbleRunner):
     """Configures a MumbleRunner. Input only. Via pyaudio"""
     def _config(self):
         return {"input": {"func": self.__input_loop, "process": None},
                 "output": {"func": self.__output_loop, "process": None}}
 
+    def __output_loop(self):
+        raise NotImplementedError("please inherit and implement")
+    def __input_loop(self):
+        raise NotImplementedError("please inherit and implement")
+
+class Audio(BaseAudio):
     def calculate_volume(self, thread_name):
         try:
             db = self[thread_name]["db"]
@@ -111,6 +114,20 @@ class Audio(MumbleRunner):
     def input_vol(self, dbint):
         self.run_dict = None
 
+class AudioPipe(BaseAudio):
+    def __output_loop(self, periodsize):
+        return None
+
+    def __input_loop(self, periodsize, path):
+        while True:
+            with open(path) as fifo_fd:
+                while True:
+                    data = fifo_fd.read(periodsize)
+                    self.mumble.sound_output.add_sound(data)
+
+
+class Parser(MumbleRunner):
+    pass
 
 def prepare_mumble(host, user, password="", certfile=None,
                    codec_profile="audio", bandwidth=96000, channel=None):
@@ -156,20 +173,30 @@ def main(preserve_thread=True):
                         help="Path to an optional openssl certificate file")
 
     parser.add_argument("-C", "--channel", dest="channel", type=str, default=None,
-                        help="channel name as string")
+                        help="Channel name as string")
+
+    parser.add_argument("-f", "--fifo", dest="fifo_path", type=str, default=None,
+                        help="Read from FIFO (EXPERMENTAL)")
 
     args = parser.parse_args()
 
 
     abot = prepare_mumble(args.host, args.user, args.password, args.certfile,
                           "audio", args.bandwidth, args.channel)
-
-    audio = Audio(abot, {"output": {"args": (args.periodsize, ),
-                                    "kwargs": None},
-                         "input": {"args": (args.periodsize, ),
-                                   "kwargs": None}
-                        }
-                 )
+    if args.fifo_path:
+        audio = AudioPipe(abot, {"output": {"args": (args.periodsize, ),
+                                            "kwargs": None},
+                                 "input": {"args": (args.periodsize, args.fifo_path),
+                                           "kwargs": None}
+                                }
+                         )
+    else:
+        audio = Audio(abot, {"output": {"args": (args.periodsize, ),
+                                        "kwargs": None},
+                             "input": {"args": (args.periodsize, ),
+                                       "kwargs": None}
+                            }
+                     )
     if preserve_thread:
         while True:
             print(audio.status())
