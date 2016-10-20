@@ -61,7 +61,7 @@ class Runner(collections.UserDict):
         else:
             return list()
 
-    def stop(name=""):
+    def stop(self, name=""):
         raise NotImplementedError("Sorry")
 
 
@@ -73,28 +73,24 @@ class MumbleRunner(Runner):
     def _config(self):
         raise NotImplementedError("please inherit and implement")
 
-class BaseAudio(MumbleRunner):
-    """Configures a MumbleRunner. Input only. Via pyaudio"""
+
+class Audio(MumbleRunner):
     def _config(self):
         return {"input": {"func": self.__input_loop, "process": None},
                 "output": {"func": self.__output_loop, "process": None}}
 
-    def __output_loop(self):
-        raise NotImplementedError("please inherit and implement")
-    def __input_loop(self):
-        raise NotImplementedError("please inherit and implement")
-
-class Audio(BaseAudio):
     def calculate_volume(self, thread_name):
+        """ TODO """
         try:
-            db = self[thread_name]["db"]
-            self["vol_vector"] = 10 ** (db/20)
+            dbel = self[thread_name]["db"]
+            self["vol_vector"] = 10 ** (dbel/20)
         except KeyError:
             self["vol_vector"] = 1
 
 
     def __output_loop(self, periodsize):
         """ TODO """
+        del periodsize
         return None
 
     def __input_loop(self, periodsize):
@@ -112,9 +108,13 @@ class Audio(BaseAudio):
         return True
 
     def input_vol(self, dbint):
-        self.run_dict = None
+        pass
 
-class AudioPipe(BaseAudio):
+class AudioPipe(MumbleRunner):
+    def _config(self):
+        return {"input": {"func": self.__input_loop, "process": None},
+                "output": {"func": self.__output_loop, "process": None}}
+
     def __output_loop(self, periodsize):
         return None
 
@@ -184,6 +184,7 @@ def main(preserve_thread=True):
     abot = prepare_mumble(args.host, args.user, args.password, args.certfile,
                           "audio", args.bandwidth, args.channel)
     if args.fifo_path:
+        print("#########")
         audio = AudioPipe(abot, {"output": {"args": (args.periodsize, ),
                                             "kwargs": None},
                                  "input": {"args": (args.periodsize, args.fifo_path),
@@ -191,6 +192,7 @@ def main(preserve_thread=True):
                                 }
                          )
     else:
+        print("------------")
         audio = Audio(abot, {"output": {"args": (args.periodsize, ),
                                         "kwargs": None},
                              "input": {"args": (args.periodsize, ),
@@ -199,7 +201,7 @@ def main(preserve_thread=True):
                      )
     if preserve_thread:
         while True:
-            print(audio.status())
+            #print(audio.status())
             sleep(10)
 
 if __name__ == "__main__":
