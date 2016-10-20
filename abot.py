@@ -15,7 +15,28 @@ import collections
 
 from thrd_party import pymumble
 import pyaudio
-__version__ = "0.0.4"
+__version__ = "0.0.9"
+
+class Status(collections.UserList):
+    def __init__(self, runner_obj):
+        self.__runner_obj = runner_obj
+        self.scheme = collections.namedtuple("thread_info", ("name", "alive"))
+        super().__init__(self.__gather_status())
+
+    def __gather_status(self):
+        result = []
+        for meta in self.__runner_obj.values():
+            result.append(self.scheme(meta["process"].name,
+                                      meta["process"].is_alive()))
+        return result
+
+    def __repr__(self):
+        repr_str = ""
+        for status in self:
+            repr_str += "[%s] alive: %s\n" % (status.name, status.alive)
+        return repr_str
+
+
 
 class Runner(collections.UserDict):
     """ TODO """
@@ -53,11 +74,7 @@ class Runner(collections.UserDict):
     def status(self):
         """ TODO """
         if self.is_ready:
-            result = []
-            for meta in self.keys():
-                ntuple = collections.namedtuple("thread_info", ("name", "alive"))
-                result.append(ntuple(meta["process"].name, meta["process"].is_alive()))
-            return result
+            return Status(self)
         else:
             return list()
 
@@ -112,8 +129,8 @@ class Audio(MumbleRunner):
 
 class AudioPipe(MumbleRunner):
     def _config(self):
-        return {"input": {"func": self.__input_loop, "process": None},
-                "output": {"func": self.__output_loop, "process": None}}
+        return {"PipeInput": {"func": self.__input_loop, "process": None},
+                "PipeOutput": {"func": self.__output_loop, "process": None}}
 
     def __output_loop(self, periodsize):
         return None
@@ -184,7 +201,6 @@ def main(preserve_thread=True):
     abot = prepare_mumble(args.host, args.user, args.password, args.certfile,
                           "audio", args.bandwidth, args.channel)
     if args.fifo_path:
-        print("#########")
         audio = AudioPipe(abot, {"output": {"args": (args.periodsize, ),
                                             "kwargs": None},
                                  "input": {"args": (args.periodsize, args.fifo_path),
@@ -192,7 +208,6 @@ def main(preserve_thread=True):
                                 }
                          )
     else:
-        print("------------")
         audio = Audio(abot, {"output": {"args": (args.periodsize, ),
                                         "kwargs": None},
                              "input": {"args": (args.periodsize, ),
@@ -201,8 +216,10 @@ def main(preserve_thread=True):
                      )
     if preserve_thread:
         while True:
-            #print(audio.status())
-            sleep(10)
+            print(audio.status())
+            sleep(60)
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
